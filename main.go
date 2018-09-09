@@ -5,13 +5,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
 	app = kingpin.New("args", "Testing command line arguments.")
-	env = app.Flag("env", "environment").Short('e').Default("").String()
+	env = app.Flag("env", "environment").Short('e').Default("").HintOptions("staging", "prod").String()
 
 	list = app.Command("list", "Lists all timeslices for an environment.").Default()
 
@@ -33,7 +34,17 @@ var (
 	reassignToTimeslice   = reassign.Arg("to-timeslice", "The timeslice to assign accounts to.").Required().String()
 )
 
+type logWriter struct {
+}
+
+func (writer logWriter) Write(bytes []byte) (int, error) {
+	return fmt.Print(time.Now().Format("2006-01-02 15:04:05") + " " + string(bytes))
+}
+
 func main() {
+	log.SetFlags(0)
+	log.SetOutput(new(logWriter))
+
 	defaultEnv := "staging"
 	hostEnv := ""
 
@@ -81,6 +92,9 @@ func main() {
 		*env = hostEnv
 	} else if *env == "" {
 		*env = defaultEnv
+	}
+	if *env != "staging" && *env != "prod" {
+		log.Fatalf("environment must be one of staging or prod: [%s]\n", *env)
 	}
 	fmt.Printf("env = [%s]\n", *env)
 }
